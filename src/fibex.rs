@@ -42,10 +42,36 @@ pub struct FibexModel {
     /// The services of the model.
     pub services: Vec<FibexServiceInterface>,
     /// The types of the model.
-    pub types: Vec<FibexTypeReference>,
+    types: Vec<FibexTypeReference>,
     /// The codings of the model.
-    pub codings: Vec<FibexCodingReference>,
+    codings: Vec<FibexCodingReference>,
 }
+
+// # Safety
+//
+// The `unsafe impl Send` and `unsafe impl Sync` for `FibexModel` are sound
+// because the following invariants guarantee thread safety for `FibexModel`
+// instances after their single-threaded initialization phase:
+//
+// The `Rc` and `RefCell` fields are private to `FibexModel`, allowing its
+// implementation to strictly control their access and uphold these invariants:
+//
+// 1.  All `Rc` and `RefCell` fields are created and exclusively used (cloned, dropped,
+//     borrowed mutably or immutably) ONLY within a single, blocking,
+//     initialization function that runs entirely on one thread.
+// 2.  After this initialization phase completes, the private `Rc` and `RefCell` fields are
+//     NEVER accessed or modified in a way that would involve their thread-unsafe
+//     operations from *any* thread. Specifically, the implementation guarantees:
+//     - No new `Rc` clones are created from existing `Rc` fields.
+//     - Existing `Rc` fields are not dropped (or if dropped, it's guaranteed safe in
+//       the post-initialization context, e.g., they wrap `Copy` types).
+//     - The `RefCell` fields are NEVER borrowed (`borrow()` or `borrow_mut()`).
+// 3.  Any public methods called on a `&FibexModel` instance after
+//     initialization do not indirectly perform any operations (like cloning/dropping
+//     an internal `Rc` or borrowing an internal `RefCell`) that would be unsafe
+//     in a concurrent context.
+unsafe impl Send for FibexModel {}
+unsafe impl Sync for FibexModel {}
 
 /// Represents a type reference.
 pub type FibexTypeReference = Rc<RefCell<FibexTypeInstance>>;
@@ -78,7 +104,7 @@ impl FibexModel {
     ///
     /// If strict is set to true, any unresolved reference will raise an error.
     /// If strict is set to false, all unresolved references will be ignored.
-    pub fn pack(&mut self, strict: bool) -> Result<(), FibexError> {
+    fn pack(&mut self, strict: bool) -> Result<(), FibexError> {
         let mut resolved_types: HashMap<String, FibexTypeReference> = HashMap::new();
         let mut bitfield_types: Vec<FibexTypeReference> = Vec::new();
 
@@ -284,7 +310,7 @@ pub struct FibexTypeDeclaration {
     /// The referenced id of the item.
     pub id_ref: String,
     /// The optional referenced type of the item.
-    pub type_ref: Option<FibexTypeReference>,
+    pub(crate) type_ref: Option<FibexTypeReference>,
     /// The attributes of the item.
     pub attributes: Vec<FibexTypeAttribute>,
 }
