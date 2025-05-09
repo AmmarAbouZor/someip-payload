@@ -51,7 +51,7 @@ pub struct FibexModel {
 pub type FibexTypeReference = Rc<RefCell<FibexTypeInstance>>;
 
 /// Represents a coding reference.
-pub type FibexCodingReference = Rc<RefCell<FibexTypeCoding>>;
+pub type FibexCodingReference = Rc<FibexTypeCoding>;
 
 impl FibexModel {
     /// Creates a new empty model.
@@ -88,22 +88,19 @@ impl FibexModel {
 
             if let Some(coding_id) = type_borrow.coding.as_ref() {
                 for coding_ref in &self.codings {
-                    let coding_borrow = coding_ref.borrow();
-
-                    if coding_borrow.id == *coding_id {
+                    if coding_ref.id == *coding_id {
                         type_borrow.coding_ref = Some(coding_ref.clone());
 
                         // Resolve coded types.
                         if let FibexDatatype::Unknown = &type_borrow.datatype {
-                            if let Some(datatype) = coding_borrow.resolve() {
+                            if let Some(datatype) = coding_ref.resolve() {
                                 type_borrow.datatype = datatype;
                             }
                         }
 
                         // Resolve enum types.
                         if let FibexDatatype::Enum(enumeration) = &mut type_borrow.datatype {
-                            if let Some(FibexDatatype::Primitive(primitive)) =
-                                coding_borrow.resolve()
+                            if let Some(FibexDatatype::Primitive(primitive)) = coding_ref.resolve()
                             {
                                 enumeration.primitive = primitive;
                             }
@@ -155,9 +152,7 @@ impl FibexModel {
                             &member_borrow.datatype
                         {
                             if let Some(coding_ref) = &member_borrow.coding_ref {
-                                let coding_borrow = coding_ref.borrow();
-
-                                if let Some(bit_len) = coding_borrow.bit_length() {
+                                if let Some(bit_len) = coding_ref.bit_length() {
                                     member
                                         .attributes
                                         .push(FibexTypeAttribute::BitLength(bit_len));
@@ -1279,11 +1274,11 @@ mod parser {
                     }
                 }
                 FibexEvent::CodingInfoEnd => {
-                    return Ok(Rc::new(RefCell::new(FibexTypeCoding {
+                    return Ok(Rc::new(FibexTypeCoding {
                         id,
                         name: get_value(reader, coding_name)?,
                         attributes,
-                    })));
+                    }));
                 }
                 FibexEvent::Eof => {
                     return Err(unexpected_eof(&id));
