@@ -25,7 +25,7 @@ impl FibexTypes {
     /// let obj = FibexTypes::build(request)?;
     /// # Ok::<(), FibexError>(())
     /// ```
-    pub fn build(type_decl: &FibexTypeDeclaration) -> Result<Box<dyn SOMType>, FibexError> {
+    pub fn build(type_decl: &FibexTypeDeclaration) -> Result<BoxedSOMType, FibexError> {
         if let Some(result) = builder::get_type(type_decl) {
             return Ok(result);
         }
@@ -41,7 +41,7 @@ impl FibexTypes {
 mod builder {
     use super::*;
 
-    pub(super) fn get_type(type_decl: &FibexTypeDeclaration) -> Option<Box<dyn SOMType>> {
+    pub(super) fn get_type(type_decl: &FibexTypeDeclaration) -> Option<BoxedSOMType> {
         if type_decl.is_array() {
             return get_array_type(type_decl);
         } else if let Some(type_ref) = &type_decl.type_ref {
@@ -102,7 +102,7 @@ mod builder {
         None
     }
 
-    fn get_array_type(type_decl: &FibexTypeDeclaration) -> Option<Box<dyn SOMType>> {
+    fn get_array_type(type_decl: &FibexTypeDeclaration) -> Option<BoxedSOMType> {
         let multidim = type_decl.is_multidim_array();
 
         if let Some(dimension) = type_decl.get_array_dimension(0) {
@@ -260,11 +260,11 @@ mod builder {
     fn get_multidim_primitive_array_type(
         name: String,
         description: String,
-        element: Box<dyn SOMType>,
+        element: BoxedSOMType,
         datatype: &FibexPrimitive,
         dimension: &FibexArrayDimension,
         lengthfield: SOMLengthField,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         match datatype {
             FibexPrimitive::Bool => {
                 if let Some(item) = (*element).as_any().downcast_ref::<SOMBoolArray>() {
@@ -446,11 +446,11 @@ mod builder {
     fn get_primitive_array_type(
         name: String,
         description: String,
-        element: Box<dyn SOMType>,
+        element: BoxedSOMType,
         datatype: &FibexPrimitive,
         dimension: &FibexArrayDimension,
         lengthfield: SOMLengthField,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         match datatype {
             FibexPrimitive::Bool => {
                 if let Some(item) = (*element).as_any().downcast_ref::<SOMBool>() {
@@ -634,7 +634,7 @@ mod builder {
         description: String,
         datatype: &FibexPrimitive,
         endian: SOMEndian,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         match datatype {
             FibexPrimitive::Bool => Some(Box::new(
                 SOMBool::empty().with_meta(SOMTypeMeta::from(name, description)),
@@ -683,7 +683,7 @@ mod builder {
         name: String,
         description: String,
         type_decls: &[FibexTypeDeclaration],
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         Some(Box::new(
             SOMStruct::from(get_complex_type_items(type_decls))
                 .with_meta(SOMTypeMeta::from(name, description)),
@@ -695,7 +695,7 @@ mod builder {
         description: String,
         type_decls: &[FibexTypeDeclaration],
         lengthfield_size: usize,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         let mut members = Vec::new();
         for (i, value) in get_complex_type_items(type_decls).into_iter().enumerate() {
             if let Some(type_decl) = type_decls.get(i).as_ref() {
@@ -722,7 +722,7 @@ mod builder {
         description: String,
         type_decls: &[FibexTypeDeclaration],
         typefield_size: usize,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         Some(Box::new(
             SOMUnion::from(
                 get_type_field(typefield_size),
@@ -736,7 +736,7 @@ mod builder {
         name: String,
         description: String,
         type_decls: &[FibexTypeDeclaration],
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         Some(Box::new(
             SOMBitfield::from(get_bitfield_type_items(type_decls))
                 .with_meta(SOMTypeMeta::from(name, description)),
@@ -868,7 +868,7 @@ mod builder {
     }
 
     fn get_primitive_array_struct_member(
-        array: Box<dyn SOMType>,
+        array: BoxedSOMType,
         datatype: &FibexPrimitive,
     ) -> Option<SOMStructMember> {
         match datatype {
@@ -946,7 +946,7 @@ mod builder {
     }
 
     fn get_primitive_struct_member(
-        member: Box<dyn SOMType>,
+        member: BoxedSOMType,
         datatype: &FibexPrimitive,
     ) -> Option<SOMStructMember> {
         match datatype {
@@ -1028,7 +1028,7 @@ mod builder {
         description: String,
         datatype: &FibexEnum,
         endian: SOMEndian,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         match &datatype.primitive {
             FibexPrimitive::Uint8 => {
                 let mut items = Vec::new();
@@ -1088,7 +1088,7 @@ mod builder {
         bit_length: Option<usize>,
         min_bit_length: Option<usize>,
         max_bit_length: Option<usize>,
-    ) -> Option<Box<dyn SOMType>> {
+    ) -> Option<BoxedSOMType> {
         let is_dynamic = datatype.is_dynamic;
 
         let encoding = match datatype.encoding {

@@ -6,6 +6,9 @@ use std::fmt::{Debug, Display};
 use thiserror::Error;
 use ux::{i24, u24};
 
+/// Represents dynamic object which implements [`SOMType`] and [`Send`].
+pub(crate) type BoxedSOMType = Box<dyn SOMType + Send>;
+
 /// Trait for type serialization.
 pub trait SOMType: Display + Debug {
     /// Serializes the type into the provided serializer.
