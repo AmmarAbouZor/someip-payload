@@ -138,10 +138,7 @@ impl FibexModel {
             }
 
             if let FibexDatatype::Unknown = &type_borrow.datatype {
-                warn!(
-                    "{}",
-                    format!("Unknown type {} ({})", type_borrow.id, type_borrow.name)
-                );
+                warn!("Unknown type {} ({})", type_borrow.id, type_borrow.name);
             } else {
                 resolved_types.insert(type_borrow.id.clone(), type_ref.clone());
             }

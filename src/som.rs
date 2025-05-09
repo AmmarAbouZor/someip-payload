@@ -198,7 +198,7 @@ impl<'a> SOMSerializer<'a> {
 }
 
 #[doc(hidden)]
-impl<'a> SOMSerializer<'a> {
+impl SOMSerializer<'_> {
     fn offset(&self) -> usize {
         self.offset
     }
@@ -497,7 +497,7 @@ impl<'a> SOMParser<'a> {
 }
 
 #[doc(hidden)]
-impl<'a> SOMParser<'a> {
+impl SOMParser<'_> {
     fn offset(&self) -> usize {
         self.offset
     }
@@ -2657,7 +2657,7 @@ pub(crate) mod strings {
         let char_size = char_size(encoding);
 
         let char_len = bytes_len / char_size;
-        if (bytes_len % char_size) != 0 {
+        if !bytes_len.is_multiple_of(char_size) {
             return char_len + 1;
         }
 
@@ -3626,7 +3626,7 @@ pub(crate) mod bitfields {
         fn validate_length(&self, offset: usize) -> Result<(), SOMTypeError> {
             let bit_len: usize = self.bit_len();
 
-            if bit_len % 8 != 0 {
+            if !bit_len.is_multiple_of(8) {
                 return Err(SOMTypeError::InvalidType(format!(
                     "Invalid Bitfield length {} at offset {}",
                     bit_len, offset
