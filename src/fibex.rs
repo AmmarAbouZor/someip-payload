@@ -42,11 +42,21 @@ pub struct FibexModel {
     /// The services of the model.
     pub services: Vec<FibexServiceInterface>,
     /// The types of the model.
+    #[cfg(not(feature = "unsafe_send"))]
+    pub types: Vec<FibexTypeReference>,
+
+    #[cfg(feature = "unsafe_send")]
     types: Vec<FibexTypeReference>,
+
     /// The codings of the model.
+    #[cfg(not(feature = "unsafe_send"))]
+    pub codings: Vec<FibexCodingReference>,
+
+    #[cfg(feature = "unsafe_send")]
     codings: Vec<FibexCodingReference>,
 }
 
+// NOTE: This relates to feature `unsafe_send` only.
 // # Safety
 //
 // The `unsafe impl Send` and `unsafe impl Sync` for `FibexModel` are sound
@@ -70,7 +80,9 @@ pub struct FibexModel {
 //     initialization do not indirectly perform any operations (like cloning/dropping
 //     an internal `Rc` or borrowing an internal `RefCell`) that would be unsafe
 //     in a concurrent context.
+#[cfg(feature = "unsafe_send")]
 unsafe impl Send for FibexModel {}
+#[cfg(feature = "unsafe_send")]
 unsafe impl Sync for FibexModel {}
 
 /// Represents a type reference.
@@ -104,7 +116,17 @@ impl FibexModel {
     ///
     /// If strict is set to true, any unresolved reference will raise an error.
     /// If strict is set to false, all unresolved references will be ignored.
-    fn pack(&mut self, strict: bool) -> Result<(), FibexError> {
+    #[cfg(not(feature = "unsafe_send"))]
+    #[inline]
+    pub fn pack(&mut self, strict: bool) -> Result<(), FibexError> {
+        self.pack_intern(strict)
+    }
+
+    /// Resolves references within the model or returns an error.
+    ///
+    /// If strict is set to true, any unresolved reference will raise an error.
+    /// If strict is set to false, all unresolved references will be ignored.
+    fn pack_intern(&mut self, strict: bool) -> Result<(), FibexError> {
         let mut resolved_types: HashMap<String, FibexTypeReference> = HashMap::new();
         let mut bitfield_types: Vec<FibexTypeReference> = Vec::new();
 
@@ -307,6 +329,10 @@ pub struct FibexTypeDeclaration {
     /// The referenced id of the item.
     pub id_ref: String,
     /// The optional referenced type of the item.
+    #[cfg(not(feature = "unsafe_send"))]
+    pub type_ref: Option<FibexTypeReference>,
+
+    #[cfg(feature = "unsafe_send")]
     pub(crate) type_ref: Option<FibexTypeReference>,
     /// The attributes of the item.
     pub attributes: Vec<FibexTypeAttribute>,
@@ -919,7 +945,7 @@ mod parser {
             }
         }
 
-        model.pack(strict)?;
+        model.pack_intern(strict)?;
 
         Ok(model)
     }

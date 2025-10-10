@@ -6,6 +6,11 @@ use std::fmt::{Debug, Display};
 use thiserror::Error;
 use ux::{i24, u24};
 
+#[cfg(not(feature = "unsafe_send"))]
+/// Represents dynamic object which implements [`SOMType`].
+pub(crate) type BoxedSOMType = Box<dyn SOMType>;
+
+#[cfg(feature = "unsafe_send")]
 /// Represents dynamic object which implements [`SOMType`] and [`Send`].
 pub(crate) type BoxedSOMType = Box<dyn SOMType + Send>;
 
